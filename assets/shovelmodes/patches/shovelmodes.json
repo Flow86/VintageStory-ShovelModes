@@ -1,0 +1,10 @@
+[
+  {
+    "file": "game:items/tool/shovel/*",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "ShovelModes"
+    },
+  }
+]

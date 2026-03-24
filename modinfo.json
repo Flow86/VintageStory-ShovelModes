@@ -1,0 +1,11 @@
+{
+  "type": "code",
+  "modid": "shovelmodes",
+  "name": "Shovel Modes",
+  "authors": ["Flow86"],
+  "description": "Adds 1x3 and 3x3 digging modes to shovels.",
+  "version": "1.0.0",
+  "dependencies": {
+    "game": "1.21.0"
+  }
+}
