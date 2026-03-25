@@ -12,13 +12,21 @@ namespace Flow86.ShovelModes.Behaviors
         private SkillItem[] modes;
         private int mode = 0; // 0 = normal, 1 = 1x3, 2 = 3x3
 
+        private static readonly HashSet<EnumBlockMaterial> shovelMaterials = new()
+        {
+            EnumBlockMaterial.Soil,
+            EnumBlockMaterial.Gravel,
+            EnumBlockMaterial.Sand,
+            EnumBlockMaterial.Snow
+        };
+
         public ShovelModesBehavior(CollectibleObject collObj) : base(collObj)
         {
             modes = new[]
             {
                 new SkillItem { Code = new AssetLocation("normal"),  Name = "Normal" },
-                new SkillItem { Code = new AssetLocation("line1x3"), Name = "1×3 Linie" },
-                new SkillItem { Code = new AssetLocation("area3x3"), Name = "3×3 Fläche" }
+                new SkillItem { Code = new AssetLocation("line1x3"), Name = "1×3 Line" },
+                new SkillItem { Code = new AssetLocation("area3x3"), Name = "3×3 Area" }
             };
         }
 
@@ -29,11 +37,11 @@ namespace Flow86.ShovelModes.Behaviors
 
             if (api is ICoreClientAPI capi)
             {
-                this.modes[0].WithIcon(capi, capi.Gui.LoadSvgWithPadding(new AssetLocation("shovelmodes", "textures/icons/normal.png"), 48, 48, 5, new int?(-1)));
+                this.modes[0].WithIcon(capi, capi.Gui.LoadSvgWithPadding(new AssetLocation("shovelmodes", "textures/icons/normal.svg"), 48, 48, 5, new int?(-1)));
                 this.modes[0].TexturePremultipliedAlpha = false;
-                this.modes[1].WithIcon(capi, capi.Gui.LoadSvgWithPadding(new AssetLocation("shovelmodes", "textures/icons/packyourshovel-pack.svg"), 48, 48, 5, new int?(-1)));
+                this.modes[1].WithIcon(capi, capi.Gui.LoadSvgWithPadding(new AssetLocation("shovelmodes", "textures/icons/line1x3.svg"), 48, 48, 5, new int?(-1)));
                 this.modes[1].TexturePremultipliedAlpha = false;
-                this.modes[2].WithIcon(capi, capi.Gui.LoadSvgWithPadding(new AssetLocation("shovelmodes", "textures/icons/packyourshovel-path.svg"), 48, 48, 5, new int?(-1)));
+                this.modes[2].WithIcon(capi, capi.Gui.LoadSvgWithPadding(new AssetLocation("shovelmodes", "textures/icons/area3x3.svg"), 48, 48, 5, new int?(-1)));
                 this.modes[2].TexturePremultipliedAlpha = false;
             }
         }
@@ -57,6 +65,12 @@ namespace Flow86.ShovelModes.Behaviors
         private bool CanShovelBreakBlock(Block block, BlockSelection sel, ItemSlot slot, IPlayer player)
         {
             if (block == null || slot?.Itemstack == null || player == null)
+                return false;
+
+            if (block.BlockId == 0)
+                return false;
+
+            if (!shovelMaterials.Contains(block.BlockMaterial))
                 return false;
 
             float speed = block.GetMiningSpeed(slot.Itemstack, sel, block, player);
@@ -84,7 +98,9 @@ namespace Flow86.ShovelModes.Behaviors
                 _ => new List<BlockPos>()
             };
 
-            int durabilityCost = 1;
+            int durabilityCost = 0;
+            if (result)
+                durabilityCost++;
 
             foreach (var pos in extra)
             {
@@ -97,14 +113,20 @@ namespace Flow86.ShovelModes.Behaviors
                     HitPosition = blockSel.HitPosition
                 };
 
+                if (!world.Claims.TryAccess(player, pos, EnumBlockAccessFlags.BuildOrBreak))
+                    continue;
+
                 if (!CanShovelBreakBlock(block, sel, itemslot, player))
                     continue;
 
                 durabilityCost++;
-                world.BlockAccessor.BreakBlock(pos, player);
+                world.BlockAccessor.BreakBlock(pos, player, dropQuantityMultiplier);
             }
 
-            collObj.DamageItem(world, byEntity, itemslot, durabilityCost);
+            if (durabilityCost > 0)
+            {
+                itemslot.Itemstack.Collectible.DamageItem(world, byEntity, itemslot, durabilityCost);
+            }
 
             return result;
         }
